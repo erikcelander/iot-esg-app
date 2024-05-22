@@ -26,6 +26,11 @@ function createMqttConnection(url: string, username: string, password: string): 
     const client: MqttClient = mqtt.connect(url, { username, password });
 
     client.on("connect", () => {
+      // After calling the end method, which puts the client in the
+      // disconnecting state, the connect event can still be triggered
+      // but the subscribe method throws an error.
+      if (client.disconnecting) return;
+
       console.log("Client connected.");
       Array.from(subscribers.keys())
         .filter(topic => !clientSubscriptions.has(topic))
@@ -52,6 +57,7 @@ function createMqttConnection(url: string, username: string, password: string): 
 
     if (client.connected) {
       console.log("Subscribing client to topic:", topic);
+
       client.subscribe(topic, (err) => {
         if (err) {
           console.error("Failed to subscribe to topic", err);

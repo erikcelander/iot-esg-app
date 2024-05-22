@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { encodeFormData } from "./lib/utils";
 import fs from "fs/promises"
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 //import {createWriteStream} from "fs"
 //import {Writable} from "stream"
 
@@ -379,7 +379,7 @@ export const storeCurrentTemperature = async (
   contextMap: any,
   newTemp: number,
 ) => {
-  revalidatePath("/")
+  revalidateTag(nodeCacheTagByContext("thermostat"));
 
   if (Object.hasOwn(contextMap, 'termotemp')) {
     contextMap['termotemp'] = newTemp;
@@ -417,8 +417,6 @@ export const changeTempOnTerm = async (
   const fullUrl = process.env.NEXT_PUBLIC_YGGIO_API_URL + url
   console.log("Temperature URL:", fullUrl)
 
-  revalidatePath("/")
-
   const response = await fetch(fullUrl, {
     method: "PUT",
     headers: {
@@ -434,7 +432,9 @@ export const changeTempOnTerm = async (
   }
 };
 
-
+function nodeCacheTagByContext(context: string): string {
+  return `node-by-context-${context}`;
+}
 
 export const getNodeByContext = async (
   token: string,
@@ -450,6 +450,7 @@ export const getNodeByContext = async (
       "Content-Type": "application/json",
     },
     cache: "no-store",
+    next: { tags: [nodeCacheTagByContext(context)] },
   });
 
   if (response.ok) {
