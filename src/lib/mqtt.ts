@@ -31,12 +31,15 @@ function createMqttConnection(url: string, username: string, password: string): 
   const subscribers: Map<string, Function[]> = new Map();
   const clientSubscriptions = new Set<string>();
 
+  console.log("Creating new MQTT client connection.");
+
   const client = mqtt.connect(process.env.NEXT_PUBLIC_YGGIO_MQTT_URL!, {
     username: "iot-esg-app-set",
     password: "super-secret-password",
   });
 
   client.on("connect", () => {
+    console.log("Client connected.");
     Array.from(subscribers.keys())
       .filter(topic => !clientSubscriptions.has(topic))
       .forEach(topic => subscribeClient(topic));
@@ -48,6 +51,7 @@ function createMqttConnection(url: string, username: string, password: string): 
   });
 
   function subscribeClient(topic: string) {
+    console.log("Subscribing client to topic:", topic);
     client.subscribe(topic, (err) => {
       if (err) {
         console.error("Failed to subscribe to topic", err);
@@ -59,7 +63,9 @@ function createMqttConnection(url: string, username: string, password: string): 
   }
 
   function unsubscribeClient(topic: string) {
-
+    console.log("Unsubscribing client from topic:", topic);
+    client.unsubscribe(topic);
+    clientSubscriptions.delete(topic);
   }
 
   function disconnectClient() {
@@ -86,8 +92,17 @@ function createMqttConnection(url: string, username: string, password: string): 
         unsubscribe() {
           console.log("Removing subscription callback for topic:", topic);
           const callbacks = subscribers.get(topic) ?? [];
-          callbacks.pop()
-          unsubscribeClient(topic);
+          const index = callbacks.indexOf(onMessage);
+          if (index > -1) {
+            callbacks.splice(index, 1);
+          }
+          if (callbacks.length === 0) {
+            unsubscribeClient(topic);
+          }
+          if (clientSubscriptions.size === 0) {
+            console.log("No more subscribers!");
+            //disconnectClient();
+          }
         }
       }
     }
