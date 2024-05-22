@@ -1,22 +1,17 @@
 import { useEffect, useState } from "react";
 import mqtt, { MqttClient } from "mqtt";
 
-export const useMqtt = (setID: string, nodeID: string, onMessage: Function) => {
-  const [currentConnection, setCurrentConnection] = useState<Connection|null>(null);
+let connection: Connection | null = null;
 
+export const useMqtt = (setID: string, nodeID: string, onMessage: Function) => {
   useEffect(() => {
     const topic = `yggio/output/v2/${setID}/iotnode/${nodeID}`;
 
-    let connection;
-    if (currentConnection === null) {
+    if (connection === null) {
       const url = process.env.NEXT_PUBLIC_YGGIO_MQTT_URL!;
       const username = "iot-esg-app-set";
       const password = "super-secret-password";
       connection = createMqttConnection(url, username, password);
-      setCurrentConnection(connection);
-    }
-    else {
-      connection = currentConnection;
     }
 
     const subscription = connection.subscribe(topic, onMessage);
@@ -33,8 +28,6 @@ interface Subscription {
 }
 
 function createMqttConnection(url: string, username: string, password: string): Connection {
-  let isConnected = false;
-
   const subscribers: Map<string, Function[]> = new Map();
   const clientSubscriptions = new Set<string>();
 
