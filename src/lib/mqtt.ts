@@ -19,18 +19,17 @@ export const useMqtt = (setID: string, nodeID: string, onMessage: Function) => {
       connection = currentConnection;
     }
 
-    connection.subscribe(topic, onMessage);
-
-    // return () => {
-    //   console.log("Disconnecting from MQTT broker");
-    //   client.end();
-    // };
-
+    const subscription = connection.subscribe(topic, onMessage);
+    return () => subscription.unsubscribe();
   }, [setID, nodeID, onMessage]);
 };
 
 interface Connection {
-  subscribe(topic: string, onMessage: Function): void
+  subscribe(topic: string, onMessage: Function): Subscription
+}
+
+interface Subscription {
+  unsubscribe(): void
 }
 
 function createMqttConnection(url: string, username: string, password: string): Connection {
@@ -40,7 +39,7 @@ function createMqttConnection(url: string, username: string, password: string): 
   const clientSubscriptions = new Set<string>();
 
   const client = mqtt.connect(process.env.NEXT_PUBLIC_YGGIO_MQTT_URL!, {
-    username: `iot-esg-app-set`,
+    username: "iot-esg-app-set",
     password: "super-secret-password",
   });
 
@@ -61,13 +60,24 @@ function createMqttConnection(url: string, username: string, password: string): 
         console.error("Failed to subscribe to topic", err);
       } else {
         clientSubscriptions.add(topic);
-        console.log(`Subscribed to topic: ${topic}`);
+        console.log("Subscribed to topic:", topic);
       }
     });
   }
 
+  function unsubscribeClient(topic: string) {
+
+  }
+
+  function disconnectClient() {
+    console.log("Disconnecting from MQTT broker");
+    client.end();
+  }
+
   return {
-    subscribe(topic: string, onMessage: Function) {
+    subscribe(topic: string, onMessage: Function): Subscription {
+      console.log("Adding subscription callback for topic:", topic);
+
       let callbacks = subscribers.get(topic);
       if (callbacks === null || callbacks === undefined) {
         callbacks = [];
@@ -77,6 +87,15 @@ function createMqttConnection(url: string, username: string, password: string): 
 
       if (!clientSubscriptions.has(topic)) {
         subscribeClient(topic);
+      }
+
+      return {
+        unsubscribe() {
+          console.log("Removing subscription callback for topic:", topic);
+          const callbacks = subscribers.get(topic) ?? [];
+          callbacks.pop()
+          unsubscribeClient(topic);
+        }
       }
     }
   }
