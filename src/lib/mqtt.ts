@@ -15,12 +15,6 @@ export const useMqtt = (setID: string, nodeID: string, onMessage: Function) => {
   }, [setID, nodeID, onMessage]);
 };
 
-enum TopicState {
-  subscribing,
-  subscribed,
-  unsubscribing,
-}
-
 function createMqttConnection(url: string, username: string, password: string): Connection {
   const subscribers: Map<string, Function[]> = new Map();
   const topicStates = new Map<string, TopicState>();
@@ -151,4 +145,10 @@ interface Connection {
 
 interface Subscription {
   unsubscribe(): void
+}
+
+enum TopicState {
+  subscribing,
+  subscribed,
+  unsubscribing,
 }
