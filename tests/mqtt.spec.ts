@@ -94,6 +94,25 @@ describe("createMqttConnection", () => {
     client.onMessage("topic3", "test message")
     expect(received).toEqual(["sub3"])
   })
+
+  it("unsubscribes client when last subscriber removed from topic", () => {
+    let sub1 = connection.subscribe("topic1", () => {})
+    let sub2 = connection.subscribe("topic1", () => {})
+    connection.subscribe("topic2", () => {})
+    let client = clientFactory.single()
+    client.onConnect()
+    let sub3 = connection.subscribe("topic1", () => {})
+    expect(client.topics).toEqual(["topic1", "topic2"])
+
+    sub1.unsubscribe()
+    expect(client.topics).toEqual(["topic1", "topic2"])
+
+    sub2.unsubscribe()
+    expect(client.topics).toEqual(["topic1", "topic2"])
+
+    sub3.unsubscribe()
+    expect(client.topics).toEqual(["topic2"])
+  })
 })
 
 function createFakeClient() {

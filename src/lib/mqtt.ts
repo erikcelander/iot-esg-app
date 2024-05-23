@@ -37,7 +37,6 @@ export function createMqttConnection(
       topics.forEach(topic => c.subscribe(topic, err => {}))
     })
     c.on("message", (topic, message) => {
-      console.log("Doing on message!", topic, message)
       subscribers.get(topic)?.forEach(callback => callback())
     })
     return c
@@ -56,7 +55,14 @@ export function createMqttConnection(
 
       return {
         unsubscribe() {
-          client!.unsubscribe(topic)
+          let callbacks = subscribers.get(topic) ?? []
+          let index = callbacks.indexOf(onMessage)
+          if (index !== -1) {
+            callbacks.splice(index, 1)
+          }
+          if (callbacks.length === 0) {
+            client!.unsubscribe(topic)
+          }
         }
       }
     },
