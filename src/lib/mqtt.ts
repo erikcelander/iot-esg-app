@@ -48,9 +48,11 @@ export function createMqttConnection(
       }
 
       return {
-        unsubscribe() {}
+        unsubscribe() {
+          client!.unsubscribe(topic)
+        }
       }
-    }
+    },
   }
 }
 

@@ -4,7 +4,7 @@ import { MqttClient } from "mqtt"
 
 const token = "valid-token"
 
-describe("getNodeStats", () => {
+describe("createMqttConnection", () => {
   it("delays connect until first subscription", () => {
     let clientFactory = createFakeClientFactory()
     let fakeRunner = createFakeRunner()
@@ -45,6 +45,21 @@ describe("getNodeStats", () => {
     connection.subscribe("topic2", () => {})
     expect(client.topics).toEqual(["topic1", "topic2"])
   })
+
+  it("unsubscribes from topics when requested", () => {
+    let clientFactory = createFakeClientFactory()
+    let fakeRunner = createFakeRunner()
+    let connection = createMqttConnection(clientFactory.factory, fakeRunner.runner)
+
+    connection.subscribe("topic1", () => {})
+    let subscription = connection.subscribe("topic2", () => {})
+    connection.subscribe("topic3", () => {})
+    let client = clientFactory.single()
+    client.onConnect()
+
+    subscription.unsubscribe()
+    expect(client.topics).toEqual(["topic1", "topic3"])
+  })
 })
 
 function createFakeClientFactory() {
@@ -82,6 +97,9 @@ function createFakeClient() {
       let index = topics.indexOf(topic)
       if (index !== -1) {
         topics.splice(index, 1)
+      }
+      else {
+        throw new Error(`Not subscribed to topic: ${topic}`)
       }
     },
     on(eventName: string, callback) {
