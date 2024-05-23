@@ -46,6 +46,7 @@ export function createMqttConnection(
 ): Connection {
   return {
     subscribe(topic, onMessage) {
+      let client = clientFactory()
       return {
         unsubscribe() {}
       }
