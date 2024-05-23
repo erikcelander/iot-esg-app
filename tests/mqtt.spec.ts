@@ -4,14 +4,16 @@ import { MqttClient } from "mqtt"
 
 describe("createMqttConnection", () => {
   let clientFactory, taskRunner, connection
+  let logged: any[][]
 
   beforeEach(() => {
     taskRunner = createFakeTaskRunner()
     clientFactory = createFakeClientFactory(taskRunner)
+    logged = []
     connection = createMqttConnection(
       clientFactory.factory,
       taskRunner.runner,
-      () => {})
+      (_name, ...args: any[]) => logged.push(args))
   })
 
   it("delays connect until first subscription", () => {
@@ -171,12 +173,30 @@ describe("createMqttConnection", () => {
     taskRunner.continue()
     expect(client.calls).toEqual(["+topic1", "+topic3", "+topic5"])
   })
+
+  it("logs errors", () => {
+    let sub1 = connection.subscribe("topic1", () => {})
+    let client = clientFactory.single()
+    client.onConnect()
+    sub1.unsubscribe()
+    expect(logged.flat().join()).not.include("Failed")
+
+    let sub2 = connection.subscribe("topic2", () => {})
+    let error = new Error("Boom!")
+    client.fail(error)
+    connection.subscribe("topic3", () => {})
+    client.onConnect()
+    sub2.unsubscribe()
+    expect(logged).toContainEqual(["Failed to subscribe:", error])
+    expect(logged).toContainEqual(["Failed to unsubscribe:", error])
+  })
 })
 
 function createFakeClient(taskRunner) {
   let callbacks: any[] = []
   let topics: string[] = []
   let calls: string[] = []
+  let callbackResult: any = null
 
   let client: any = {
     connected: false,
@@ -184,6 +204,7 @@ function createFakeClient(taskRunner) {
     subscribe(topic, callback) {
       calls.push(`+${topic}`)
       topics.push(topic)
+      callback(callbackResult)
     },
     unsubscribe(topic, callback) {
       calls.push(`-${topic}`)
@@ -191,6 +212,7 @@ function createFakeClient(taskRunner) {
       if (index !== -1) {
         topics.splice(index, 1)
       }
+      callback(callbackResult)
     },
     on(eventName: string, callback) {
       callbacks.push([eventName, callback])
@@ -200,8 +222,8 @@ function createFakeClient(taskRunner) {
   function raiseEvent(eventName: string, ...args: any[]) {
     taskRunner.run()
     callbacks
-      .filter(([name, func]) => name === eventName)
-      .map(([name, func]) => func)
+      .filter(([name, _func]) => name === eventName)
+      .map(([_name, func]) => func)
       .forEach(func => func(...args))
     taskRunner.run()
   }
@@ -211,6 +233,9 @@ function createFakeClient(taskRunner) {
     callbacks,
     topics,
     calls,
+    fail(error) {
+      callbackResult = error
+    },
     onConnect() {
       client.connected = true
       raiseEvent("connect")

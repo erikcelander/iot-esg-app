@@ -100,13 +100,13 @@ export function createMqttConnection(
       updates.additions.forEach(topic => {
         log("Subscribing:", topic)
         client!.subscribe(topic, err => {
-          log("Failed to subscribe:", err)
+          if (err) log("Failed to subscribe:", err)
         })
       })
       updates.removals.forEach(topic => {
         log("Unsubscribing:", topic)
         client!.unsubscribe(topic, err => {
-          log("Failed to unsubscribe:", err)
+          if (err) log("Failed to unsubscribe:", err)
         })
       })
       updates.additions.clear()
