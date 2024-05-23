@@ -26,7 +26,11 @@ describe("getNodeStats", () => {
 
     connection.subscribe("test-topic", () => {})
     let client = clientFactory.single()
+    expect(client.topics).toEqual([])
+
     client.onConnect()
+    expect(client.topics).toEqual(["test-topic"])
+
     console.log(client)
 
     //expect(clientFactory.single().
@@ -53,14 +57,20 @@ function createFakeClientFactory() {
 }
 
 function createFakeClient() {
-  let callbacks: any[] = [];
+  let callbacks: any[] = []
+  let topics: string[] = []
 
   let client: any = {
-    subscribe() {
-      console.log("Dummy subscribe!")
+    subscribe(topic, callback) {
+      console.log("Dummy subscribe:", topic)
+      topics.push(topic)
     },
-    unsubscribe() {
-      console.log("Dummy unsubscribe!")
+    unsubscribe(topic, callback) {
+      console.log("Dummy unsubscribe:", topic)
+      let index = topics.indexOf(topic)
+      if (index !== -1) {
+        topics.splice(index, 1)
+      }
     },
     on(eventName: string, callback) {
       callbacks.push([eventName, callback])
@@ -70,6 +80,7 @@ function createFakeClient() {
   return {
     client,
     callbacks,
+    topics,
     onConnect() {
       callbacks
         .filter(([eventName, func]) => eventName === "connect")

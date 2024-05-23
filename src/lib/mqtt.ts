@@ -28,11 +28,21 @@ export function createMqttConnection(
   updateTaskRunner: UpdateTaskRunner,
 ): Connection {
   let client: MqttClient | null = null
+  let subscribers = new Map<string, any[]>()
+
+  function createClient() {
+    let newClient = clientFactory()
+    newClient.on("connect", () => {
+      let topics = Array.from(subscribers.keys())
+      topics.forEach(topic => newClient.subscribe(topic, err => {}))
+    })
+    return newClient
+  }
 
   return {
     subscribe(topic, onMessage) {
-      client = client ?? clientFactory()
-      client.subscribe(topic, err => {})
+      client = client ?? createClient()
+      subscribers.set(topic, [onMessage])
 
       return {
         unsubscribe() {}
