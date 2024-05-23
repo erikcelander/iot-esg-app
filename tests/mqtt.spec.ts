@@ -1,15 +1,19 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, beforeEach } from "vitest"
 import { createMqttConnection } from "../src/lib/mqtt"
 import { MqttClient } from "mqtt"
 
-const token = "valid-token"
-
 describe("createMqttConnection", () => {
-  it("delays connect until first subscription", () => {
-    let clientFactory = createFakeClientFactory()
-    let fakeRunner = createFakeRunner()
+  let clientFactory
+  let fakeRunner
+  let connection
 
-    let connection = createMqttConnection(clientFactory.factory, fakeRunner.runner)
+  beforeEach(() => {
+    clientFactory = createFakeClientFactory()
+    fakeRunner = createFakeRunner()
+    connection = createMqttConnection(clientFactory.factory, fakeRunner.runner)
+  })
+
+  it("delays connect until first subscription", () => {
     expect(clientFactory.count()).toBe(0)
 
     connection.subscribe("topic1", () => {})
@@ -20,10 +24,6 @@ describe("createMqttConnection", () => {
   })
 
   it("subscribes to topics on connect", () => {
-    let clientFactory = createFakeClientFactory()
-    let fakeRunner = createFakeRunner()
-    let connection = createMqttConnection(clientFactory.factory, fakeRunner.runner)
-
     connection.subscribe("topic1", () => {})
     connection.subscribe("topic2", () => {})
     let client = clientFactory.single()
@@ -34,10 +34,6 @@ describe("createMqttConnection", () => {
   })
 
   it("subscribes to new topics when already connected", () => {
-    let clientFactory = createFakeClientFactory()
-    let fakeRunner = createFakeRunner()
-    let connection = createMqttConnection(clientFactory.factory, fakeRunner.runner)
-
     connection.subscribe("topic1", () => {})
     let client = clientFactory.single()
     client.onConnect()
@@ -47,10 +43,6 @@ describe("createMqttConnection", () => {
   })
 
   it("unsubscribes from topics when requested", () => {
-    let clientFactory = createFakeClientFactory()
-    let fakeRunner = createFakeRunner()
-    let connection = createMqttConnection(clientFactory.factory, fakeRunner.runner)
-
     connection.subscribe("topic1", () => {})
     let subscription = connection.subscribe("topic2", () => {})
     connection.subscribe("topic3", () => {})
