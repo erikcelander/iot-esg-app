@@ -3,9 +3,7 @@ import { createMqttConnection } from "../src/lib/mqtt"
 import { MqttClient } from "mqtt"
 
 describe("createMqttConnection", () => {
-  let clientFactory
-  let fakeRunner
-  let connection
+  let clientFactory, fakeRunner, connection
 
   beforeEach(() => {
     clientFactory = createFakeClientFactory()
@@ -44,15 +42,85 @@ describe("createMqttConnection", () => {
 
   it("unsubscribes from topics when requested", () => {
     connection.subscribe("topic1", () => {})
-    let subscription = connection.subscribe("topic2", () => {})
+    let sub = connection.subscribe("topic2", () => {})
     connection.subscribe("topic3", () => {})
     let client = clientFactory.single()
     client.onConnect()
 
-    subscription.unsubscribe()
+    sub.unsubscribe()
     expect(client.topics).toEqual(["topic1", "topic3"])
   })
+
+  it("subscribes to topic only once with multiple subscribers", () => {
+    connection.subscribe("topic1", () => {})
+    connection.subscribe("topic1", () => {})
+    let client = clientFactory.single()
+    client.onConnect()
+    expect(client.topics).toEqual(["topic1"])
+
+    connection.subscribe("topic1", () =>  {})
+    expect(client.topics).toEqual(["topic1"])
+  })
+
+  it("invokes all subscribers when topic message received", () => {
+    let received: string[] = []
+    let sub1 = connection.subscribe("topic1", () => { received.push("sub1") })
+    let sub2 = connection.subscribe("topic1", () => { received.push("sub2") })
+    let client = clientFactory.single()
+    client.onConnect()
+    let sub3 = connection.subscribe("topic1", () => { received.push("sub3") })
+
+    client.onMessage("topic1", "test message")
+    expect(received).toEqual(["sub1", "sub2", "sub3"])
+  })
 })
+
+function createFakeClient() {
+  let callbacks: any[] = []
+  let topics: string[] = []
+
+  let client: any = {
+    connected: false,
+    disconnecting: false,
+    subscribe(topic, callback) {
+      //console.log("Dummy subscribe:", topic)
+      topics.push(topic)
+    },
+    unsubscribe(topic, callback) {
+      //console.log("Dummy unsubscribe:", topic)
+      let index = topics.indexOf(topic)
+      if (index !== -1) {
+        topics.splice(index, 1)
+      }
+      else {
+        throw new Error(`Not subscribed to topic: ${topic}`)
+      }
+    },
+    on(eventName: string, callback) {
+      callbacks.push([eventName, callback])
+    }
+  }
+
+  function raiseEvent(eventName: string, ...args: any[]) {
+      callbacks
+        .filter(([name, func]) => name === eventName)
+        .map(([name, func]) => func)
+        .forEach(func => func(...args))
+  }
+
+  return {
+    client,
+    callbacks,
+    topics,
+    onConnect() {
+      client.connected = true
+      raiseEvent("connect")
+    },
+    onMessage(topic, message) {
+      raiseEvent("message", topic, message)
+    },
+  }
+}
 
 function createFakeClientFactory() {
   let clients: any[] = []
@@ -69,46 +137,6 @@ function createFakeClientFactory() {
       let client: any = createFakeClient()
       clients.push(client)
       return client.client
-    }
-  }
-}
-
-function createFakeClient() {
-  let callbacks: any[] = []
-  let topics: string[] = []
-
-  let client: any = {
-    connected: false,
-    disconnecting: false,
-    subscribe(topic, callback) {
-      console.log("Dummy subscribe:", topic)
-      topics.push(topic)
-    },
-    unsubscribe(topic, callback) {
-      console.log("Dummy unsubscribe:", topic)
-      let index = topics.indexOf(topic)
-      if (index !== -1) {
-        topics.splice(index, 1)
-      }
-      else {
-        throw new Error(`Not subscribed to topic: ${topic}`)
-      }
-    },
-    on(eventName: string, callback) {
-      callbacks.push([eventName, callback])
-    }
-  }
-
-  return {
-    client,
-    callbacks,
-    topics,
-    onConnect() {
-      client.connected = true
-      callbacks
-        .filter(([eventName, func]) => eventName === "connect")
-        .map(([eventName, func]) => func)
-        .forEach(func => func())
     }
   }
 }

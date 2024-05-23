@@ -36,14 +36,19 @@ export function createMqttConnection(
       let topics = Array.from(subscribers.keys())
       topics.forEach(topic => c.subscribe(topic, err => {}))
     })
+    c.on("message", (topic, message) => {
+      console.log("Doing on message!", topic, message)
+      subscribers.get(topic)?.forEach(callback => callback())
+    })
     return c
   }
 
   return {
     subscribe(topic, onMessage) {
       client = client ?? createClient()
+      let isAlreadySubsribed = subscribers.has(topic)
       subscribers.set(topic, [onMessage])
-      if (client.connected) {
+      if (client.connected && !isAlreadySubsribed) {
         client.subscribe(topic, err => {})
       }
 
