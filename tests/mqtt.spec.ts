@@ -66,6 +66,7 @@ describe("createMqttConnection", () => {
     let received: any[][] = []
     let bindCallback = (name: string) =>
       (...args: any[]) => { received.push([name, ...args]) }
+
     connection.subscribe("topic1", bindCallback("sub1"))
     connection.subscribe("topic1", bindCallback("sub2"))
     let client = clientFactory.single()
@@ -83,6 +84,7 @@ describe("createMqttConnection", () => {
     let received: any[][] = []
     let bindCallback = (name: string) =>
       (...args: any[]) => { received.push([name, ...args]) }
+
     connection.subscribe("topic1", bindCallback("sub1"))
     connection.subscribe("topic2", bindCallback("sub2"))
     let client = clientFactory.single()
