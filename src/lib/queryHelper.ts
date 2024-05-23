@@ -487,6 +487,5 @@ export async function getAllNodes(
   let things = new Map(nodesTypes.map((node: NodeType, index: number) => {
     return [nodesTypes[node], results[index]]
   }))
-  console.log("längt på things:" , things.size)
   return things
 }

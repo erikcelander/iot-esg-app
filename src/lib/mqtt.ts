@@ -1,23 +1,5 @@
 import { useEffect } from "react";
 import mqtt, { MqttClient } from "mqtt";
-import { createContext, useContext } from 'react';
-
-
-
-
-export const MyAwesomeContext = createContext<any>(null);
-
-let providerCounter = 0;
-
-export function myAwesomeGlobalProvider() {
-  const providerId = ++providerCounter;
-  console.log("It's my provider, yo!", providerId);
-  // useEffect(() => {
-  //   console.log("My provider setup!", providerId);
-  //   return () => console.log("My provider teardown!", providerId);
-  // })
-}
-
 
 const connection = createMqttConnection(
   () => mqtt.connect(
@@ -25,7 +7,6 @@ const connection = createMqttConnection(
     { username: "iot-esg-app-set", password: "super-secret-password", }),
   queueMicrotask
 );
-
 
 export const useMqtt = (setID: string, nodeID: string, onMessage: Function) => {
   useEffect(() => {
@@ -51,9 +32,6 @@ export function createMqttConnection(
     }
   }
 }
-
-
-
 
 interface Connection {
   subscribe(topic: string, onMessage: Function): Subscription

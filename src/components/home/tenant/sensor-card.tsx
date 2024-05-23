@@ -61,11 +61,6 @@ export const SensorCard = ({
     setReportedTime(reportedAt);
   }, []);
 
-  useEffect(() => {
-    console.log("Sensor card mounting!")
-    return () => console.log("Sensor card unmounting!");
-  })
-
   useMqtt(setID, nodeID, onMessage);
 
   const updateFormattedReportedTime = useCallback(() => {
