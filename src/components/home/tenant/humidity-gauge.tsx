@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import React, { Suspense, useCallback, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import Image from "next/image";
 const GaugeComponent = dynamic(() => import("react-gauge-component"), {
     ssr: false,

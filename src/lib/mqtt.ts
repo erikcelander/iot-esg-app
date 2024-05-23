@@ -12,20 +12,22 @@ let providerCounter = 0;
 export function myAwesomeGlobalProvider() {
   const providerId = ++providerCounter;
   console.log("It's my provider, yo!", providerId);
-  useEffect(() => {
-    console.log("My provider setup!", providerId);
-    return () => console.log("My provider teardown!", providerId);
-  })
+  // useEffect(() => {
+  //   console.log("My provider setup!", providerId);
+  //   return () => console.log("My provider teardown!", providerId);
+  // })
 }
 
 
 
 
 const connection = createMqttConnection(
-  process.env.NEXT_PUBLIC_YGGIO_MQTT_URL!,
-  "iot-esg-app-set",
-  "super-secret-password",
+  () => mqtt.connect(
+    process.env.NEXT_PUBLIC_YGGIO_MQTT_URL!,
+    { username: "iot-esg-app-set", password: "super-secret-password", }),
+  queueMicrotask
 );
+
 
 export const useMqtt = (setID: string, nodeID: string, onMessage: Function) => {
   useEffect(() => {
@@ -35,15 +37,34 @@ export const useMqtt = (setID: string, nodeID: string, onMessage: Function) => {
   }, [setID, nodeID, onMessage]);
 };
 
-function createMqttConnection(url: string, username: string, password: string): Connection {
+type ClientFactory = () => MqttClient
+type UpdateTaskRunner = (task: () => void) => void
+
+export function createMqttConnection(
+  clientFactory: ClientFactory,
+  updateTaskRunner: UpdateTaskRunner,
+): Connection {
+  return {
+    subscribe(topic, onMessage) {
+      return {
+        unsubscribe() {}
+      }
+    }
+  }
+}
+
+
+
+
+export function oldPrototypeCreateMqttConnection(clientFactory: ClientFactory): Connection {
   const subscribers: Map<string, Function[]> = new Map();
   const topicStates = new Map<string, TopicState>();
   let currentClient: MqttClient | null = null;
-  let task: any = null;
+  let updateQueued = false;
 
   function createClient() {
     console.log("Creating new MQTT client connection.");
-    const client: MqttClient = mqtt.connect(url, { username, password });
+    const client: MqttClient = clientFactory();
 
     client.on("connect", () => {
       // After calling the end method, which puts the client in the
@@ -122,9 +143,10 @@ function createMqttConnection(url: string, username: string, password: string): 
   }
 
   function enqueueTask() {
-    if (task === null) {
-      task = queueMicrotask(() => {
-        task = null;
+    if (!updateQueued) {
+      updateQueued = true;
+      queueMicrotask(() => {
+        updateQueued = false;
         console.log("End result:", debugSubscribers());
       })
     }
