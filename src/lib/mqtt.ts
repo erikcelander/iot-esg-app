@@ -10,7 +10,12 @@ export const MyAwesomeContext = createContext<any>(null);
 let providerCounter = 0;
 
 export function myAwesomeGlobalProvider() {
-  console.log("It's my provider, yo!", ++providerCounter);
+  const providerId = ++providerCounter;
+  console.log("It's my provider, yo!", providerId);
+  useEffect(() => {
+    console.log("My provider setup!", providerId);
+    return () => console.log("My provider teardown!", providerId);
+  })
 }
 
 
