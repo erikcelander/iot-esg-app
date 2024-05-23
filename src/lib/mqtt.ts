@@ -39,6 +39,7 @@ function createMqttConnection(url: string, username: string, password: string): 
   const subscribers: Map<string, Function[]> = new Map();
   const topicStates = new Map<string, TopicState>();
   let currentClient: MqttClient | null = null;
+  let task: any = null;
 
   function createClient() {
     console.log("Creating new MQTT client connection.");
@@ -120,6 +121,21 @@ function createMqttConnection(url: string, username: string, password: string): 
     }
   }
 
+  function enqueueTask() {
+    if (task === null) {
+      task = queueMicrotask(() => {
+        task = null;
+        console.log("End result:", debugSubscribers());
+      })
+    }
+  }
+
+  function debugSubscribers() {
+    const r = Array.from(subscribers.entries())
+      .map(([k, v]) => [k, v.length]);
+    return JSON.stringify(r);
+  }
+
   return {
     subscribe(topic: string, onMessage: Function): Subscription {
       console.log("Adding callback:", topic);
@@ -140,6 +156,9 @@ function createMqttConnection(url: string, username: string, password: string): 
         }
       }
 
+      console.log("Result of adding:", debugSubscribers());
+      enqueueTask();
+
       return {
         unsubscribe() {
           console.log("Removing callback:", topic);
@@ -153,6 +172,9 @@ function createMqttConnection(url: string, username: string, password: string): 
           if (callbacks.length === 0) {
             unsubscribe(currentClient!, topic);
           }
+
+          console.log("Result of removing:", debugSubscribers());
+          enqueueTask();
         }
       }
     }
