@@ -64,14 +64,35 @@ describe("createMqttConnection", () => {
 
   it("invokes all subscribers when topic message received", () => {
     let received: string[] = []
-    let sub1 = connection.subscribe("topic1", () => { received.push("sub1") })
-    let sub2 = connection.subscribe("topic1", () => { received.push("sub2") })
+    connection.subscribe("topic1", () => { received.push("sub1") })
+    connection.subscribe("topic1", () => { received.push("sub2") })
     let client = clientFactory.single()
     client.onConnect()
-    let sub3 = connection.subscribe("topic1", () => { received.push("sub3") })
+    connection.subscribe("topic1", () => { received.push("sub3") })
 
     client.onMessage("topic1", "test message")
     expect(received).toEqual(["sub1", "sub2", "sub3"])
+  })
+
+  it("invokes subscribers only for subscribed topic", () => {
+    let received: string[] = []
+    connection.subscribe("topic1", () => { received.push("sub1") })
+    connection.subscribe("topic2", () => { received.push("sub2") })
+    let client = clientFactory.single()
+    client.onConnect()
+    connection.subscribe("topic3", () => { received.push("sub3") })
+    expect(received).toEqual([])
+
+    client.onMessage("topic1", "test message")
+    expect(received).toEqual(["sub1"])
+
+    received.splice(0)
+    client.onMessage("topic2", "test message")
+    expect(received).toEqual(["sub2"])
+
+    received.splice(0)
+    client.onMessage("topic3", "test message")
+    expect(received).toEqual(["sub3"])
   })
 })
 
