@@ -3,14 +3,14 @@ import { createMqttConnection } from "../src/lib/mqtt"
 import { MqttClient } from "mqtt"
 
 describe("createMqttConnection", () => {
-  let clientFactory, fakeRunner, connection
+  let clientFactory, taskRunner, connection
 
   beforeEach(() => {
     clientFactory = createFakeClientFactory()
-    fakeRunner = createFakeRunner()
+    taskRunner = createFakeTaskRunner()
     connection = createMqttConnection(
       clientFactory.factory,
-      fakeRunner.runner,
+      taskRunner.runner,
       () => {})
   })
 
@@ -140,6 +140,26 @@ describe("createMqttConnection", () => {
     sub3.unsubscribe()
     expect(client.topics).toEqual(["topic2"])
   })
+
+  it("coalesces subscription changes", () => {
+    let sub1 = connection.subscribe("topic1", () => {})
+    let sub2 = connection.subscribe("topic2", () => {})
+    let client = clientFactory.single()
+    sub2.unsubscribe()
+
+    client.onConnect()
+    taskRunner.run()
+    expect(client.calls).toEqual(["+topic1"])
+
+    let sub3 = connection.subscribe("topic3", () => {})
+    let sub4 = connection.subscribe("topic4", () => {})
+    sub4.unsubscribe()
+    sub3.unsubscribe()
+    taskRunner.run()
+    expect(client.calls).toEqual(["+topic1"])
+
+    //let sub4
+  })
 })
 
 function createFakeClient() {
@@ -209,7 +229,7 @@ function createFakeClientFactory() {
   }
 }
 
-function createFakeRunner() {
+function createFakeTaskRunner() {
   let tasks: (() => void)[] = []
 
   return {
