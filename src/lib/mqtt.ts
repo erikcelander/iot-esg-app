@@ -47,7 +47,7 @@ export function createMqttConnection(
     callbacks.push(onMessage)
     subscribers.set(topic, callbacks)
     if (!isAlreadySubsribed) {
-      scheduleUpdate({add: [topic]})
+      scheduleUpdate({add: topic})
     }
     return {unsubscribe: unsubscribe.bind(null, topic, onMessage)}
   }
@@ -59,28 +59,24 @@ export function createMqttConnection(
       callbacks.splice(index, 1)
       if (callbacks.length === 0) {
         subscribers.delete(topic)
-        scheduleUpdate({remove: [topic]})
+        scheduleUpdate({remove: topic})
       }
     }
   }
 
   function scheduleUpdate({
-    add = [],
-    remove = [],
+    add = undefined,
+    remove = undefined,
   }: {
-    add?: string[],
-    remove?: string[],
+    add?: string,
+    remove?: string
   }) {
-    add.forEach(topic => {
-      if (!removalsScheduled.delete(topic)) {
-        additionsScheduled.add(topic)
-      }
-    })
-    remove.forEach(topic => {
-      if (!additionsScheduled.delete(topic)) {
-        removalsScheduled.add(topic)
-      }
-    })
+    if (add && !removalsScheduled.delete(add)) {
+      additionsScheduled.add(add)
+    }
+    if (remove && !additionsScheduled.delete(remove)) {
+      removalsScheduled.add(remove)
+    }
     if (!isUpdateScheduled) {
       isUpdateScheduled = true
       taskRunner(() => {
@@ -88,11 +84,15 @@ export function createMqttConnection(
         if (client?.connected) {
           additionsScheduled.forEach(topic => {
             log("Subscribing:", topic)
-            client!.subscribe(topic, err => {})
+            client!.subscribe(topic, err => {
+              log("Failed to subscribe:", err)
+            })
           })
           removalsScheduled.forEach(topic => {
             log("Unsubscribing:", topic)
-            client!.unsubscribe(topic)
+            client!.unsubscribe(topic, err => {
+              log("Failed to unsubscribe:", err)
+            })
           })
           additionsScheduled.clear()
           removalsScheduled.clear()
