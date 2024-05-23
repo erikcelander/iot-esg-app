@@ -8,7 +8,10 @@ describe("createMqttConnection", () => {
   beforeEach(() => {
     clientFactory = createFakeClientFactory()
     fakeRunner = createFakeRunner()
-    connection = createMqttConnection(clientFactory.factory, fakeRunner.runner)
+    connection = createMqttConnection(
+      clientFactory.factory,
+      fakeRunner.runner,
+      () => {})
   })
 
   it("delays connect until first subscription", () => {
