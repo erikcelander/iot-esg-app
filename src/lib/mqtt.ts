@@ -21,8 +21,10 @@ export function createMqttConnection(
   let client: MqttClient | null = null
   let subscribers = new Map<string, MessageCallback[]>()
   let isUpdateScheduled = false
-  let additionsScheduled = new Set<string>()
-  let removalsScheduled = new Set<string>()
+  let updates = {
+    additions: new Set<string>(),
+    removals: new Set<string>(),
+  }
 
   const log = logger.bind(logger, "mqtt:")
 
@@ -34,8 +36,9 @@ export function createMqttConnection(
     })
     c.on("message", (topic, message) => {
       log("Message received:", topic, message)
-      subscribers.get(topic)
-        ?.forEach(callback => callback(topic, message))
+      subscribers.get(topic)?.forEach(callback => {
+        callback(topic, message);
+      })
     })
     return c
   }
@@ -71,33 +74,37 @@ export function createMqttConnection(
     add?: string,
     remove?: string
   }) {
-    if (add && !removalsScheduled.delete(add)) {
-      additionsScheduled.add(add)
+    if (add && !updates.removals.delete(add)) {
+      updates.additions.add(add)
     }
-    if (remove && !additionsScheduled.delete(remove)) {
-      removalsScheduled.add(remove)
+    if (remove && !updates.additions.delete(remove)) {
+      updates.removals.add(remove)
     }
     if (!isUpdateScheduled) {
       isUpdateScheduled = true
       taskRunner(() => {
         isUpdateScheduled = false
-        if (client?.connected) {
-          additionsScheduled.forEach(topic => {
-            log("Subscribing:", topic)
-            client!.subscribe(topic, err => {
-              log("Failed to subscribe:", err)
-            })
-          })
-          removalsScheduled.forEach(topic => {
-            log("Unsubscribing:", topic)
-            client!.unsubscribe(topic, err => {
-              log("Failed to unsubscribe:", err)
-            })
-          })
-          additionsScheduled.clear()
-          removalsScheduled.clear()
-        }
+        updateSubscriptions()
       })
+    }
+  }
+
+  function updateSubscriptions() {
+    if (client?.connected) {
+      updates.additions.forEach(topic => {
+        log("Subscribing:", topic)
+        client!.subscribe(topic, err => {
+          log("Failed to subscribe:", err)
+        })
+      })
+      updates.removals.forEach(topic => {
+        log("Unsubscribing:", topic)
+        client!.unsubscribe(topic, err => {
+          log("Failed to unsubscribe:", err)
+        })
+      })
+      updates.additions.clear()
+      updates.removals.clear()
     }
   }
 
