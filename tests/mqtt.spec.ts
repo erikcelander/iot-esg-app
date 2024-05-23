@@ -48,10 +48,25 @@ describe("createMqttConnection", () => {
     let sub = connection.subscribe("topic2", () => {})
     connection.subscribe("topic3", () => {})
     let client = clientFactory.single()
+    expect(client.calls).toEqual([])
+
     client.onConnect()
+    expect(client.calls).toEqual(["+topic1", "+topic2", "+topic3"])
 
     sub.unsubscribe()
+    expect(client.calls).toEqual(["+topic1", "+topic2", "+topic3", "-topic2"])
     expect(client.topics).toEqual(["topic1", "topic3"])
+  })
+
+  it("unsubscribes only if subscribed", () => {
+    let sub1 = connection.subscribe("topic1", () => {})
+    let sub2 = connection.subscribe("topic2", () => {})
+    let client = clientFactory.single()
+    sub1.unsubscribe()
+    client.onConnect()
+    sub2.unsubscribe()
+    sub2.unsubscribe()
+    expect(client.calls).toEqual(["+topic2", "-topic2"])
   })
 
   it("subscribes to topic only once with multiple subscribers", () => {
@@ -130,22 +145,22 @@ describe("createMqttConnection", () => {
 function createFakeClient() {
   let callbacks: any[] = []
   let topics: string[] = []
+  let calls: string[] = []
 
   let client: any = {
     connected: false,
     disconnecting: false,
     subscribe(topic, callback) {
       //console.log("Dummy subscribe:", topic)
+      calls.push(`+${topic}`)
       topics.push(topic)
     },
     unsubscribe(topic, callback) {
       //console.log("Dummy unsubscribe:", topic)
+      calls.push(`-${topic}`)
       let index = topics.indexOf(topic)
       if (index !== -1) {
         topics.splice(index, 1)
-      }
-      else {
-        throw new Error(`Not subscribed to topic: ${topic}`)
       }
     },
     on(eventName: string, callback) {
@@ -164,6 +179,7 @@ function createFakeClient() {
     client,
     callbacks,
     topics,
+    calls,
     onConnect() {
       client.connected = true
       raiseEvent("connect")
@@ -194,7 +210,8 @@ function createFakeClientFactory() {
 }
 
 function createFakeRunner() {
-  let tasks: (() => void)[] = [];
+  let tasks: (() => void)[] = []
+
   return {
     runner(task: () => void) {
       tasks.push(task)

@@ -63,10 +63,13 @@ export function createMqttConnection(
           let index = callbacks.indexOf(onMessage)
           if (index !== -1) {
             callbacks.splice(index, 1)
-          }
-          if (callbacks.length === 0) {
-            log("Unsubscribing:", topic)
-            client!.unsubscribe(topic)
+            if (callbacks.length === 0) {
+              subscribers.delete(topic)
+              if (client!.connected) {
+                log("Unsubscribing:", topic)
+                client!.unsubscribe(topic)
+              }
+            }
           }
         }
       }
