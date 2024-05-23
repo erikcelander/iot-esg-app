@@ -45,7 +45,7 @@ export const SensorCard = ({
       icon = <div></div>;
   }
 
-  const onMessage = (topic: any, message: any) => {
+  const onMessage = useCallback((topic: any, message: any) => {
     const { iotnode } = JSON.parse(message.toString());
 
     const reportedAt = iotnode.reportedAt;
@@ -59,7 +59,7 @@ export const SensorCard = ({
 
     setValue(sensorValue);
     setReportedTime(reportedAt);
-  };
+  }, []);
 
   useMqtt(setID, nodeID, onMessage);
 

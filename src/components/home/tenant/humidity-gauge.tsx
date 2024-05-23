@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useCallback, useState } from 'react';
 import Image from "next/image";
 const GaugeComponent = dynamic(() => import("react-gauge-component"), {
     ssr: false,
@@ -28,7 +28,7 @@ export const HumidityGauge = ({
 
     console.log("this is nodeID " + nodeID)
 
-    const onMessage = (topic: any, message: any) => {
+    const onMessage = useCallback((topic: any, message: any) => {
         const { iotnode } = JSON.parse(message.toString());
 
         console.log("iotNode value: " + iotnode)
@@ -38,7 +38,7 @@ export const HumidityGauge = ({
 
         setValue(sensorValue);
 
-    };
+    }, []);
 
     useMqtt(setID, nodeID, onMessage);
 
