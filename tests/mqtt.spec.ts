@@ -63,36 +63,43 @@ describe("createMqttConnection", () => {
   })
 
   it("invokes all subscribers when topic message received", () => {
-    let received: string[] = []
-    connection.subscribe("topic1", () => { received.push("sub1") })
-    connection.subscribe("topic1", () => { received.push("sub2") })
+    let received: any[][] = []
+    let bindCallback = (name: string) =>
+      (...args: any[]) => { received.push([name, ...args]) }
+    connection.subscribe("topic1", bindCallback("sub1"))
+    connection.subscribe("topic1", bindCallback("sub2"))
     let client = clientFactory.single()
     client.onConnect()
-    connection.subscribe("topic1", () => { received.push("sub3") })
+    connection.subscribe("topic1", bindCallback("sub3"))
 
-    client.onMessage("topic1", "test message")
-    expect(received).toEqual(["sub1", "sub2", "sub3"])
+    client.onMessage("topic1", "msg")
+    expect(received).toEqual([
+      ["sub1", "topic1", "msg"],
+      ["sub2", "topic1", "msg"],
+      ["sub3", "topic1", "msg"]])
   })
 
   it("invokes subscribers only for subscribed topic", () => {
-    let received: string[] = []
-    connection.subscribe("topic1", () => { received.push("sub1") })
-    connection.subscribe("topic2", () => { received.push("sub2") })
+    let received: any[][] = []
+    let bindCallback = (name: string) =>
+      (...args: any[]) => { received.push([name, ...args]) }
+    connection.subscribe("topic1", bindCallback("sub1"))
+    connection.subscribe("topic2", bindCallback("sub2"))
     let client = clientFactory.single()
     client.onConnect()
-    connection.subscribe("topic3", () => { received.push("sub3") })
+    connection.subscribe("topic3", bindCallback("sub3"))
     expect(received).toEqual([])
 
-    client.onMessage("topic1", "test message")
-    expect(received).toEqual(["sub1"])
+    client.onMessage("topic1", "msg1")
+    expect(received).toEqual([["sub1", "topic1", "msg1"]])
 
     received.splice(0)
-    client.onMessage("topic2", "test message")
-    expect(received).toEqual(["sub2"])
+    client.onMessage("topic2", "msg2")
+    expect(received).toEqual([["sub2", "topic2", "msg2"]])
 
     received.splice(0)
-    client.onMessage("topic3", "test message")
-    expect(received).toEqual(["sub3"])
+    client.onMessage("topic3", "msg3")
+    expect(received).toEqual([["sub3", "topic3", "msg3"]])
   })
 
   it("unsubscribes client when last subscriber removed from topic", () => {

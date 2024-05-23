@@ -37,7 +37,8 @@ export function createMqttConnection(
       topics.forEach(topic => c.subscribe(topic, err => {}))
     })
     c.on("message", (topic, message) => {
-      subscribers.get(topic)?.forEach(callback => callback())
+      subscribers.get(topic)
+        ?.forEach(callback => callback(topic, message))
     })
     return c
   }
