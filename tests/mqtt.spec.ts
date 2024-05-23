@@ -69,6 +69,17 @@ describe("createMqttConnection", () => {
     expect(client.calls).toEqual(["+topic2", "-topic2"])
   })
 
+  it("removes subscriber only with matching subscription", () => {
+    let reusedCallback = () => {}
+    let sub1 = connection.subscribe("topic1", reusedCallback)
+    connection.subscribe("topic1", reusedCallback)
+    let client = clientFactory.single()
+    client.onConnect()
+    sub1.unsubscribe()
+    sub1.unsubscribe()
+    expect(client.calls).toEqual(["+topic1"])
+  })
+
   it("subscribes to topic only once with multiple subscribers", () => {
     connection.subscribe("topic1", () => {})
     connection.subscribe("topic1", () => {})
@@ -171,12 +182,10 @@ function createFakeClient(taskRunner) {
     connected: false,
     disconnecting: false,
     subscribe(topic, callback) {
-      //console.log("Dummy subscribe:", topic)
       calls.push(`+${topic}`)
       topics.push(topic)
     },
     unsubscribe(topic, callback) {
-      //console.log("Dummy unsubscribe:", topic)
       calls.push(`-${topic}`)
       let index = topics.indexOf(topic)
       if (index !== -1) {

@@ -52,7 +52,13 @@ export function createMqttConnection(
     if (!isAlreadySubsribed) {
       scheduleUpdate({add: topic})
     }
-    return {unsubscribe: unsubscribe.bind(null, topic, onMessage)}
+    let unsubscriptionAction = unsubscribe.bind(null, topic, onMessage)
+    return {
+      unsubscribe() {
+        unsubscriptionAction()
+        unsubscriptionAction = () => {}
+      }
+    }
   }
 
   function unsubscribe(topic: string, onMessage: MessageCallback) {
