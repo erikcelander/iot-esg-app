@@ -31,18 +31,21 @@ export function createMqttConnection(
   let subscribers = new Map<string, any[]>()
 
   function createClient() {
-    let newClient = clientFactory()
-    newClient.on("connect", () => {
+    let c = clientFactory()
+    c.on("connect", () => {
       let topics = Array.from(subscribers.keys())
-      topics.forEach(topic => newClient.subscribe(topic, err => {}))
+      topics.forEach(topic => c.subscribe(topic, err => {}))
     })
-    return newClient
+    return c
   }
 
   return {
     subscribe(topic, onMessage) {
       client = client ?? createClient()
       subscribers.set(topic, [onMessage])
+      if (client.connected) {
+        client.subscribe(topic, err => {})
+      }
 
       return {
         unsubscribe() {}

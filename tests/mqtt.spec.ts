@@ -24,16 +24,26 @@ describe("getNodeStats", () => {
     let fakeRunner = createFakeRunner()
     let connection = createMqttConnection(clientFactory.factory, fakeRunner.runner)
 
-    connection.subscribe("test-topic", () => {})
+    connection.subscribe("topic1", () => {})
+    connection.subscribe("topic2", () => {})
     let client = clientFactory.single()
     expect(client.topics).toEqual([])
 
     client.onConnect()
-    expect(client.topics).toEqual(["test-topic"])
+    expect(client.topics).toEqual(["topic1", "topic2"])
+  })
 
-    console.log(client)
+  it("subscribes to new topics when already connected", () => {
+    let clientFactory = createFakeClientFactory()
+    let fakeRunner = createFakeRunner()
+    let connection = createMqttConnection(clientFactory.factory, fakeRunner.runner)
 
-    //expect(clientFactory.single().
+    connection.subscribe("topic1", () => {})
+    let client = clientFactory.single()
+    client.onConnect()
+
+    connection.subscribe("topic2", () => {})
+    expect(client.topics).toEqual(["topic1", "topic2"])
   })
 })
 
@@ -61,6 +71,8 @@ function createFakeClient() {
   let topics: string[] = []
 
   let client: any = {
+    connected: false,
+    disconnecting: false,
     subscribe(topic, callback) {
       console.log("Dummy subscribe:", topic)
       topics.push(topic)
@@ -82,6 +94,7 @@ function createFakeClient() {
     callbacks,
     topics,
     onConnect() {
+      client.connected = true
       callbacks
         .filter(([eventName, func]) => eventName === "connect")
         .map(([eventName, func]) => func)
