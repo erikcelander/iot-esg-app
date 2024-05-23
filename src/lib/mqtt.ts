@@ -1,5 +1,20 @@
 import { useEffect } from "react";
 import mqtt, { MqttClient } from "mqtt";
+import { createContext, useContext } from 'react';
+
+
+
+
+export const MyAwesomeContext = createContext<any>(null);
+
+let providerCounter = 0;
+
+export function myAwesomeGlobalProvider() {
+  console.log("It's my provider, yo!", ++providerCounter);
+}
+
+
+
 
 const connection = createMqttConnection(
   process.env.NEXT_PUBLIC_YGGIO_MQTT_URL!,

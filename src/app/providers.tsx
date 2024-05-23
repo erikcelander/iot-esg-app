@@ -3,6 +3,9 @@
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createContext, useContext } from 'react';
+import { MyAwesomeContext, myAwesomeGlobalProvider } from "@/lib/mqtt";
+
 
 function makeQueryClient() {
   return new QueryClient({
@@ -28,10 +31,14 @@ function getQueryClient() {
   }
 }
 
+
 export default function Providers({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
+  const myAwesomeProvider = myAwesomeGlobalProvider();
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <MyAwesomeContext.Provider value={{ myAwesomeProvider }}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </MyAwesomeContext.Provider>
   );
 }
