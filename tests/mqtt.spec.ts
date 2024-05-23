@@ -12,37 +12,24 @@ describe("getNodeStats", () => {
     let connection = createMqttConnection(clientFactory.factory, fakeRunner.runner)
     expect(clientFactory.count()).toBe(0)
 
-    connection.subscribe("test-topic", () => {})
+    connection.subscribe("topic1", () => {})
+    expect(clientFactory.count()).toBe(1)
+
+    connection.subscribe("topic2", () => {})
     expect(clientFactory.count()).toBe(1)
   })
 
-  it("subscribes client on subscription request", () => {
+  it("subscribes to topics on connect", () => {
     let clientFactory = createFakeClientFactory()
     let fakeRunner = createFakeRunner()
     let connection = createMqttConnection(clientFactory.factory, fakeRunner.runner)
 
     connection.subscribe("test-topic", () => {})
-    expect(clientFactory.count()).toBe(1)
-  })
+    let client = clientFactory.single()
+    client.onConnect()
+    console.log(client)
 
-  it("does more stuff", () => {
-    let clientFactory = createFakeClientFactory()
-    let fakeRunner = createFakeRunner()
-
-    let connection = createMqttConnection(clientFactory.factory, fakeRunner.runner)
-    expect(clientFactory.count()).toBe(0)
-
-    connection.subscribe("test-topic", () => { console.log("Got message.") })
-    expect(clientFactory.count()).toBe(1)
-
-    // let fakeClient = clientFactory.single()
-    // console.log(fakeClient.callbacks)
-    // fakeClient.onConnect()
-    // fakeRunner.run()
-
-    //let result = 1 + 1
-    //let expected = 2
-    //expect(result).toEqual(expected)
+    //expect(clientFactory.single().
   })
 })
 
@@ -60,7 +47,7 @@ function createFakeClientFactory() {
     factory(): MqttClient {
       let client: any = createFakeClient()
       clients.push(client)
-      return client
+      return client.client
     }
   }
 }

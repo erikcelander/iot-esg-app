@@ -11,7 +11,11 @@ const connection = createMqttConnection(
 export const useMqtt = (setID: string, nodeID: string, onMessage: Function) => {
   useEffect(() => {
     const topic = `yggio/output/v2/${setID}/iotnode/${nodeID}`;
-    const subscription = connection.subscribe(topic, onMessage);
+    const onMessageWrapper = (topic: string, message: any) => {
+      console.log("onMessage:", topic, message)
+      onMessage(topic, message)
+    }
+    const subscription = connection.subscribe(topic, onMessageWrapper);
     return () => subscription.unsubscribe();
   }, [setID, nodeID, onMessage]);
 };
@@ -23,9 +27,13 @@ export function createMqttConnection(
   clientFactory: ClientFactory,
   updateTaskRunner: UpdateTaskRunner,
 ): Connection {
+  let client: MqttClient | null = null
+
   return {
     subscribe(topic, onMessage) {
-      let client = clientFactory()
+      client = client ?? clientFactory()
+      client.subscribe(topic, err => {})
+
       return {
         unsubscribe() {}
       }
