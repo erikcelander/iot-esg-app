@@ -6,8 +6,8 @@ describe("createMqttConnection", () => {
   let clientFactory, taskRunner, connection
 
   beforeEach(() => {
-    clientFactory = createFakeClientFactory()
     taskRunner = createFakeTaskRunner()
+    clientFactory = createFakeClientFactory(taskRunner)
     connection = createMqttConnection(
       clientFactory.factory,
       taskRunner.runner,
@@ -142,27 +142,27 @@ describe("createMqttConnection", () => {
   })
 
   it("coalesces subscription changes", () => {
-    let sub1 = connection.subscribe("topic1", () => {})
+    connection.subscribe("topic1", () => {})
     let sub2 = connection.subscribe("topic2", () => {})
     let client = clientFactory.single()
     sub2.unsubscribe()
 
     client.onConnect()
-    taskRunner.run()
     expect(client.calls).toEqual(["+topic1"])
 
-    let sub3 = connection.subscribe("topic3", () => {})
+    taskRunner.pause()
+    connection.subscribe("topic3", () => {})
     let sub4 = connection.subscribe("topic4", () => {})
+    let sub5 = connection.subscribe("topic5", () => {})
+    connection.subscribe("topic5", () => {})
     sub4.unsubscribe()
-    sub3.unsubscribe()
-    taskRunner.run()
-    expect(client.calls).toEqual(["+topic1"])
-
-    //let sub4
+    sub5.unsubscribe()
+    taskRunner.continue()
+    expect(client.calls).toEqual(["+topic1", "+topic3", "+topic5"])
   })
 })
 
-function createFakeClient() {
+function createFakeClient(taskRunner) {
   let callbacks: any[] = []
   let topics: string[] = []
   let calls: string[] = []
@@ -189,10 +189,12 @@ function createFakeClient() {
   }
 
   function raiseEvent(eventName: string, ...args: any[]) {
-      callbacks
-        .filter(([name, func]) => name === eventName)
-        .map(([name, func]) => func)
-        .forEach(func => func(...args))
+    taskRunner.run()
+    callbacks
+      .filter(([name, func]) => name === eventName)
+      .map(([name, func]) => func)
+      .forEach(func => func(...args))
+    taskRunner.run()
   }
 
   return {
@@ -210,7 +212,7 @@ function createFakeClient() {
   }
 }
 
-function createFakeClientFactory() {
+function createFakeClientFactory(taskRunner) {
   let clients: any[] = []
   return {
     count() {
@@ -222,7 +224,7 @@ function createFakeClientFactory() {
       return clients[clients.length - 1]
     },
     factory(): MqttClient {
-      let client: any = createFakeClient()
+      let client: any = createFakeClient(taskRunner)
       clients.push(client)
       return client.client
     }
@@ -231,17 +233,29 @@ function createFakeClientFactory() {
 
 function createFakeTaskRunner() {
   let tasks: (() => void)[] = []
+  let isPaused = false
+
+  function run() {
+    while (tasks.length) {
+      let [task] = tasks.splice(0, 1)
+      task()
+    }
+  }
 
   return {
     runner(task: () => void) {
       tasks.push(task)
-    },
-    run() {
-      while (tasks.length) {
-        let [task] = tasks.splice(0, 1)
-        console.log("Task:", task)
-        task()
+      if (!isPaused) {
+        run()
       }
-    }
+    },
+    pause() {
+      isPaused = true
+    },
+    continue() {
+      isPaused = false
+      run()
+    },
+    run,
   }
 }

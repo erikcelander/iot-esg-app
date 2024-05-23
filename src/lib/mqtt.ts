@@ -20,6 +20,9 @@ export function createMqttConnection(
 ): Connection {
   let client: MqttClient | null = null
   let subscribers = new Map<string, MessageCallback[]>()
+  let isUpdateScheduled = false
+  let additionsScheduled = new Set<string>()
+  let removalsScheduled = new Set<string>()
 
   const log = logger.bind(logger, "mqtt:")
 
@@ -27,11 +30,7 @@ export function createMqttConnection(
     let c = clientFactory()
     c.on("connect", () => {
       log("Client connected.")
-      let topics = Array.from(subscribers.keys())
-      topics.forEach(topic => {
-        log("Subscribing:", topic)
-        return c.subscribe(topic, err => { });
-      })
+      scheduleUpdate({})
     })
     c.on("message", (topic, message) => {
       log("Message received:", topic, message)
@@ -47,9 +46,8 @@ export function createMqttConnection(
     let callbacks = subscribers.get(topic) ?? []
     callbacks.push(onMessage)
     subscribers.set(topic, callbacks)
-    if (client.connected && !isAlreadySubsribed) {
-      log("Subscribing:", topic)
-      client.subscribe(topic, err => {})
+    if (!isAlreadySubsribed) {
+      scheduleUpdate({add: [topic]})
     }
     return {unsubscribe: unsubscribe.bind(null, topic, onMessage)}
   }
@@ -61,11 +59,45 @@ export function createMqttConnection(
       callbacks.splice(index, 1)
       if (callbacks.length === 0) {
         subscribers.delete(topic)
-        if (client!.connected) {
-          log("Unsubscribing:", topic)
-          client!.unsubscribe(topic)
-        }
+        scheduleUpdate({remove: [topic]})
       }
+    }
+  }
+
+  function scheduleUpdate({
+    add = [],
+    remove = [],
+  }: {
+    add?: string[],
+    remove?: string[],
+  }) {
+    add.forEach(topic => {
+      if (!removalsScheduled.delete(topic)) {
+        additionsScheduled.add(topic)
+      }
+    })
+    remove.forEach(topic => {
+      if (!additionsScheduled.delete(topic)) {
+        removalsScheduled.add(topic)
+      }
+    })
+    if (!isUpdateScheduled) {
+      isUpdateScheduled = true
+      taskRunner(() => {
+        isUpdateScheduled = false
+        if (client?.connected) {
+          additionsScheduled.forEach(topic => {
+            log("Subscribing:", topic)
+            client!.subscribe(topic, err => {})
+          })
+          removalsScheduled.forEach(topic => {
+            log("Unsubscribing:", topic)
+            client!.unsubscribe(topic)
+          })
+          additionsScheduled.clear()
+          removalsScheduled.clear()
+        }
+      })
     }
   }
 
