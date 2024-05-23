@@ -47,7 +47,9 @@ export function createMqttConnection(
     subscribe(topic, onMessage) {
       client = client ?? createClient()
       let isAlreadySubsribed = subscribers.has(topic)
-      subscribers.set(topic, [onMessage])
+      let callbacks = subscribers.get(topic) ?? []
+      callbacks.push(onMessage)
+      subscribers.set(topic, callbacks)
       if (client.connected && !isAlreadySubsribed) {
         client.subscribe(topic, err => {})
       }
