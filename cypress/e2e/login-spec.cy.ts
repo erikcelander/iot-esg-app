@@ -4,6 +4,7 @@
 describe("login flow", () => {
   it("successfully logs in as tenant", () => {
     cy.login(Cypress.env("tenant_username"), Cypress.env("tenant_password"))
+    cy.login("ek223ur", "test123")
     cy.contains("nav a", /Temperature/)
   })
 
