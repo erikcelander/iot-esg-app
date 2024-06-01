@@ -1,3 +1,3 @@
 def app(environ, respond):
     respond("200 OK", [("Content-Type", "text/plain")])
-    return [b"Python here!"]
+    return [b"Python here, y'all!"]
