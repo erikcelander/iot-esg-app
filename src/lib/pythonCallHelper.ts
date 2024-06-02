@@ -14,8 +14,6 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
   //let token = process.env.SECRET_COOKIE_PASSWORD!
   let token = "dummy-tok"
 
-  let vercelToken = cookies().get("_vercel_jwt")?.value!
-
   // According to the Vercel docs, getting the host name from the client
   // request is the way to do it. The VERCEL_URL variable is deprecated
   // and access gets blocked by the deployment protection feature
@@ -27,32 +25,20 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
   console.log("Python token:", token)
   console.log("Python url:", url)
 
-  let response = await new Promise<any>((resolve, reject) => {
-    let options = {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/octet-stream",
-        "Cookie": `_vercel_jwt=${vercelToken}`,
-      },
-    }
+  let vercelToken = cookies().get("_vercel_jwt")?.value!
+  console.log("Hmmmm", vercelToken)
 
-    let responseBody: Buffer[] = []
-
-    let req = httpsRequest(url, options, res => {
-      console.log("statusCode:", res.statusCode)
-      res.on("data", chunk => responseBody.push(chunk))
-      res.on("end", () => resolve({
-        body: Buffer.concat(responseBody),
-        status: res.statusCode
-      }))
-    })
-    req.on("error", err => reject(err))
-    req.end()
+  let response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/octet-stream",
+      "Cookie": `_vercel_jwt=${vercelToken}`,
+    },
   })
 
   if (response.status === 200) {
-    return Buffer.from(response.body)
+    return Buffer.from(await response.arrayBuffer())
   }
   else {
     throw new Error("Python call failed")
