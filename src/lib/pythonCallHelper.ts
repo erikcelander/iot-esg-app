@@ -15,27 +15,40 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
 
   //let url = `https://${process.env.VERCEL_URL}/api/${name}`
   let url = "https://esgauthtest.requestcatcher.com/"
+  //let url = "http://localhost:8888"
   console.log("Python token:", token)
   console.log("Python url:", url)
-
-  //let response = await request(url, {})
 
   //let vercelToken = cookies().get("_vercel_jwt")?.value!
   let vercelToken = cookies().get("_dummy")?.value!
   console.log("Hmmmm", vercelToken)
 
-  let response = await fetch(url, {
-    method: "POST",
-    headers: {
-      //Authorization: `Bearer ${token}`,
-      "Content-Type": "application/octet-stream",
-      "Cookie": `_vercel_jwt=${vercelToken}`,
-      "Sec-Fetch-Mode": "navigate",
-    },
+  let response = await new Promise<any>((resolve, reject) => {
+    let options = {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/octet-stream",
+        "Cookie": `_vercel_jwt=${vercelToken}`,
+      },
+    }
+
+    let responseBody: Buffer[] = []
+
+    let req = request(url, options, res => {
+      console.log("statusCode:", res.statusCode)
+      res.on("data", chunk => responseBody.push(chunk))
+      res.on("end", () => resolve({
+        body: Buffer.concat(responseBody),
+        status: res.statusCode
+      }))
+    })
+    req.on("error", err => reject(err))
+    req.end()
   })
 
   if (response.status === 200) {
-    return Buffer.from(await response.arrayBuffer())
+    return Buffer.from(response.body)
   }
   else {
     throw new Error("Python call failed")
