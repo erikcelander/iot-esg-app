@@ -1,4 +1,5 @@
-import { promisify } from "util";
+import { cookies } from "next/headers"
+import { promisify } from "util"
 
 // If we're running on Vercel, we can't just start Python directly,
 // but we can call a serverless function using the Python runtime.
@@ -14,15 +15,23 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
   console.log("Python token:", token)
   console.log("Python url:", url)
 
+  let requestCookies = cookies()
+
   let response = await fetch(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/octet-stream",
+      "Cookie": requestCookies.get("_vercel_jwt")!.value,
     },
   })
 
-  return Buffer.from(await response.arrayBuffer())
+  if (response.status === 200) {
+    return Buffer.from(await response.arrayBuffer())
+  }
+  else {
+    throw new Error("Python call failed")
+  }
 }
 
 async function callSubprocess(name: String): Promise<Buffer> {
