@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath, revalidateTag } from "next/cache";
 import createReportApiWrapper from "./lib/esgReport";
 import { promisify } from "util";
+import { callPython } from "./lib/pythonCallHelper";
 
 export const get = async () => { };
 
@@ -471,40 +472,8 @@ export const checkReport = async (
   //   },
   // });
 
-  let responseData: Buffer
-
-  if (process.env.VERCEL_URL) {
-    // If running on Vercel, invoke a serverless function to run Python,
-    // reusing the shared cookie secret for authentication.
-    let secret = process.env.SECRET_COOKIE_PASSWORD!;
-
-    responseData = Buffer.from("Hello from server action!", "utf-8")
-  }
-  else {
-    // Must be imported dynamically because the actions module is
-    // imported by the middleware (among other things) which Next.js wants
-    // to run on the edge runtime, which doesn't support this API.
-    const execFile = promisify((await import("child_process")).execFile);
-
-    const args = ["--version"]
-    const options = {
-      maxBuffer: 8192 * 1024,
-      encoding: "buffer",
-    }
-    const { stdout, stderr } = await execFile("python3", args, options);
-    console.log("stdout:", stdout);
-    console.error("stderr:", stderr);
-    responseData = stdout as unknown as Buffer
-  }
-
-  // Object.keys(process.env).forEach(k => {
-  //   console.log("env:", k, process.env[k])
-  // });
-
-  //let response = new Int8Array();
-
+  let responseData: Buffer = await callPython("esg")
   return responseData.toString("base64url")
-
 
 
   let api = createReportApiWrapper(token)
