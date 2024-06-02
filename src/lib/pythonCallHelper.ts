@@ -13,14 +13,14 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
   //let token = process.env.SECRET_COOKIE_PASSWORD!
   let token = "dummy-tok"
 
-  //let url = `https://${process.env.VERCEL_URL}/api/${name}`
-  let url = "https://esgauthtest.requestcatcher.com/"
+  let url = `https://${process.env.VERCEL_URL}/api/${name}`
+  //let url = "https://esgauthtest.requestcatcher.com/"
   //let url = "http://localhost:8888"
   console.log("Python token:", token)
   console.log("Python url:", url)
 
-  //let vercelToken = cookies().get("_vercel_jwt")?.value!
-  let vercelToken = cookies().get("_dummy")?.value!
+  let vercelToken = cookies().get("_vercel_jwt")?.value!
+  //let vercelToken = cookies().get("_dummy")?.value!
   console.log("Hmmmm", vercelToken)
 
   let response = await new Promise<any>((resolve, reject) => {
