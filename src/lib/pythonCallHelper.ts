@@ -1,7 +1,5 @@
-import { request as httpsRequest } from "https"
 import { cookies, headers } from "next/headers"
-import { NextRequest } from "next/server"
-import { promisify } from "util"
+import { Readable } from "stream"
 
 // If we're running on Vercel, we can't just start Python directly,
 // but we can call a serverless function using the Python runtime.
@@ -9,7 +7,10 @@ export const callPython = process.env.VERCEL_URL
   ? callVercelServerlessFunction
   : callSubprocess
 
-async function callVercelServerlessFunction(name: String): Promise<Buffer> {
+async function callVercelServerlessFunction(
+  name: String,
+  inputData: Buffer,
+): Promise<Buffer> {
   // Reuse the shared cookie secret as authorization token.
   let token = process.env.SECRET_COOKIE_PASSWORD!
 
@@ -32,6 +33,7 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
       "Content-Type": "application/octet-stream",
       "Cookie": `_vercel_jwt=${vercelToken}`,
     },
+    body: inputData,
   })
 
   if (response.status === 200) {
@@ -42,19 +44,28 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
   }
 }
 
-async function callSubprocess(name: String): Promise<Buffer> {
+async function callSubprocess(
+  name: String,
+  inputData: Buffer,
+): Promise<Buffer> {
     // Must be imported dynamically because the module module might be
     // imported by the middleware (among other things) which Next.js wants
     // to run on the edge runtime, which doesn't support this API.
-    let execFile = promisify((await import("child_process")).execFile)
+    let spawn = (await import("child_process")).spawn
 
-    let args = [`./api/${name}.py`]
-    let options = {
-      maxBuffer: 16384 * 1024,
-      encoding: "buffer",
+    let execArgs = [`./api/${name}.py`]
+    let options: any = {
+      stdio: ["pipe", "pipe", "inherit"],
     }
-    let { stdout, stderr } = await execFile("python3", args, options)
-    console.log("stderr:", stderr)
+    let proc = spawn("python3", execArgs, options)
 
-    return stdout as unknown as Buffer
+    let inputBlob = new Blob([inputData])
+    let inputStream = Readable.fromWeb(inputBlob.stream() as any)
+    inputStream.pipe(proc.stdin)
+
+    const outputChunks = []
+    for await (let chunk of proc.stdout) {
+      outputChunks.push(chunk)
+    }
+    return Buffer.concat(outputChunks)
 }

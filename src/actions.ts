@@ -473,7 +473,9 @@ export const checkReport = async (
 
   console.log("Calling Python!")
 
-  let responseData: Buffer = await callPython("esg")
+  let inputData = Buffer.from("Some example input data")
+
+  let responseData: Buffer = await callPython("esg", inputData)
   console.log("Got Python repsonse data:", responseData)
   return responseData.toString("base64url")
 
