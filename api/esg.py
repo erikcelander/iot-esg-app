@@ -4,7 +4,6 @@ import sys, os
 def serve_request(input_stream):
     request_body = input_stream.read()
     print(f"Read {len(request_body)} bytes from request body.")
-    print(repr(request_body))
     return [request_body]
 
 
