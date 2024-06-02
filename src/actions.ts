@@ -471,21 +471,27 @@ export const checkReport = async (
   //   },
   // });
 
-  // Must be imported dynamically because Next.js the actions module is
-  // imported by the middleware (among other things) which Next.js wants
-  // to run on the edge runtime, which doesn't support this API.
-  const execFile = promisify((await import("child_process")).execFile);
+  if (process.env.VERCEL_URL) {
+    // If running on Vercel, invoke a serverless function to run Python,
+    // reusing the shared cookie secret for authentication.
+    let secret = process.env.SECRET_COOKIE_PASSWORD!;
+  }
+  else {
+    // Must be imported dynamically because the actions module is
+    // imported by the middleware (among other things) which Next.js wants
+    // to run on the edge runtime, which doesn't support this API.
+    const execFile = promisify((await import("child_process")).execFile);
 
-  Object.keys(process.env).forEach(k => {
-    console.log("env:", k, process.env[k])
-  });
+    const { stdout, stderr } = await execFile("python3", ["--version"]);
+    console.log("stdout:", stdout);
+    console.error("stderr:", stderr);
+  }
 
-  const { stdout, stderr } = await execFile("python3", ["--version"]);
-  console.log("stdout:", stdout);
-  console.error("stderr:", stderr);
+  // Object.keys(process.env).forEach(k => {
+  //   console.log("env:", k, process.env[k])
+  // });
 
-  return "data:text/plain,dummyfile";
-
+  return "about:blank";
 
 
 
