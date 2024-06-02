@@ -1,3 +1,4 @@
+import { request } from "https"
 import { cookies } from "next/headers"
 import { promisify } from "util"
 
@@ -17,6 +18,8 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
   console.log("Python token:", token)
   console.log("Python url:", url)
 
+  //let response = await request(url, {})
+
   //let vercelToken = cookies().get("_vercel_jwt")?.value!
   let vercelToken = cookies().get("_dummy")?.value!
   console.log("Hmmmm", vercelToken)
@@ -27,6 +30,7 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
       //Authorization: `Bearer ${token}`,
       "Content-Type": "application/octet-stream",
       "Cookie": `_vercel_jwt=${vercelToken}`,
+      "Sec-Fetch-Mode": "navigate",
     },
   })
 
