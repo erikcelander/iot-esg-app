@@ -471,10 +471,14 @@ export const checkReport = async (
   //   },
   // });
 
+  let responseData: Buffer
+
   if (process.env.VERCEL_URL) {
     // If running on Vercel, invoke a serverless function to run Python,
     // reusing the shared cookie secret for authentication.
     let secret = process.env.SECRET_COOKIE_PASSWORD!;
+
+    responseData = Buffer.from("Hello from server action!", "utf-8")
   }
   else {
     // Must be imported dynamically because the actions module is
@@ -482,9 +486,15 @@ export const checkReport = async (
     // to run on the edge runtime, which doesn't support this API.
     const execFile = promisify((await import("child_process")).execFile);
 
-    const { stdout, stderr } = await execFile("python3", ["--version"]);
+    const args = ["--version"]
+    const options = {
+      maxBuffer: 8192 * 1024,
+      encoding: "buffer",
+    }
+    const { stdout, stderr } = await execFile("python3", args, options);
     console.log("stdout:", stdout);
     console.error("stderr:", stderr);
+    responseData = stdout as unknown as Buffer
   }
 
   // Object.keys(process.env).forEach(k => {
@@ -492,7 +502,7 @@ export const checkReport = async (
   // });
 
   //let response = new Int8Array();
-  let responseData = Buffer.from("Hello from server action!", "utf-8")
+
   return responseData.toString("base64url")
 
 

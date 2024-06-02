@@ -10,7 +10,6 @@ export function PropertyOwner({ accessToken }: { accessToken: string }) {
   const handlereport = async () => {
     setIsLoading(true);
     const reportData = await checkReport(accessToken)
-    console.log("reportData:", reportData)
     download(reportData)
     setIsLoading(false);
   }
