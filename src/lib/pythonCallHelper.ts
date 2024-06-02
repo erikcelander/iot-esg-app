@@ -15,14 +15,14 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
   console.log("Python token:", token)
   console.log("Python url:", url)
 
-  let requestCookies = cookies()
+  let vercelToken = cookies().get("_vercel_jwt")?.value!
 
   let response = await fetch(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/octet-stream",
-      "Cookie": requestCookies.get("_vercel_jwt")!.value,
+      "Cookie": `_vercel_jwt=${vercelToken}`,
     },
   })
 
