@@ -1,5 +1,6 @@
-import { request } from "https"
-import { cookies } from "next/headers"
+import { request as httpsRequest } from "https"
+import { cookies, headers } from "next/headers"
+import { NextRequest } from "next/server"
 import { promisify } from "util"
 
 // If we're running on Vercel, we can't just start Python directly,
@@ -13,15 +14,18 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
   //let token = process.env.SECRET_COOKIE_PASSWORD!
   let token = "dummy-tok"
 
-  let url = `https://${process.env.VERCEL_URL}/api/${name}`
-  //let url = "https://esgauthtest.requestcatcher.com/"
-  //let url = "http://localhost:8888"
+  let vercelToken = cookies().get("_vercel_jwt")?.value!
+
+  // According to the Vercel docs, getting the host name from the client
+  // request is the way to do it. The VERCEL_URL variable is deprecated
+  // and access gets blocked by the deployment protection feature
+  // even with the correct client cookies.
+  // https://vercel.com/docs/security/deployment-protection#migrating-to-standard-protection
+  let vercelHostname = headers().get("host")
+
+  let url = `https://${vercelHostname}/api/${name}`
   console.log("Python token:", token)
   console.log("Python url:", url)
-
-  let vercelToken = cookies().get("_vercel_jwt")?.value!
-  //let vercelToken = cookies().get("_dummy")?.value!
-  console.log("Hmmmm", vercelToken)
 
   let response = await new Promise<any>((resolve, reject) => {
     let options = {
@@ -35,7 +39,7 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
 
     let responseBody: Buffer[] = []
 
-    let req = request(url, options, res => {
+    let req = httpsRequest(url, options, res => {
       console.log("statusCode:", res.statusCode)
       res.on("data", chunk => responseBody.push(chunk))
       res.on("end", () => resolve({
