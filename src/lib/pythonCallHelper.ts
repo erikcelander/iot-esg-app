@@ -21,7 +21,7 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
   let response = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
+      //Authorization: `Bearer ${token}`,
       "Content-Type": "application/octet-stream",
       "Cookie": `_vercel_jwt=${vercelToken}`,
     },
