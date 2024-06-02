@@ -11,8 +11,7 @@ export const callPython = process.env.VERCEL_URL
 
 async function callVercelServerlessFunction(name: String): Promise<Buffer> {
   // Reuse the shared cookie secret as authorization token.
-  //let token = process.env.SECRET_COOKIE_PASSWORD!
-  let token = "dummy-tok"
+  let token = process.env.SECRET_COOKIE_PASSWORD!
 
   // According to the Vercel docs, getting the host name from the client
   // request is the way to do it. The VERCEL_URL variable is deprecated
@@ -22,11 +21,9 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
   let vercelHostname = headers().get("host")
 
   let url = `https://${vercelHostname}/api/${name}`
-  console.log("Python token:", token)
-  console.log("Python url:", url)
+  console.log("Python function URL:", url)
 
   let vercelToken = cookies().get("_vercel_jwt")?.value!
-  console.log("Hmmmm", vercelToken)
 
   let response = await fetch(url, {
     method: "POST",
