@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath, revalidateTag } from "next/cache";
 import createReportApiWrapper from "./lib/esgReport";
+import { promisify } from "util";
 
 export const get = async () => { };
 
@@ -469,6 +470,15 @@ export const checkReport = async (
   //     "Content-Type": "application/json",
   //   },
   // });
+
+  // Must be imported dynamically because Next.js the actions module is
+  // imported by the middleware (among other things) which Next.js wants
+  // to run on the edge runtime, which doesn't support this API.
+  const execFile = promisify((await import("child_process")).execFile);
+
+  const { stdout, stderr } = await execFile("python3", ["--version"]);
+  console.log("stdout:", stdout);
+  console.error("stderr:", stderr);
 
   let api = createReportApiWrapper(token)
   console.log("report bases", await api.getReportBases())
