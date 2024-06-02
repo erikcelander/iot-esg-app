@@ -16,6 +16,7 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
   console.log("Python url:", url)
 
   let vercelToken = cookies().get("_vercel_jwt")?.value!
+  console.log("Hmmmm", vercelToken)
 
   let response = await fetch(url, {
     method: "POST",
