@@ -6,7 +6,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath, revalidateTag } from "next/cache";
 import createReportApiWrapper from "./lib/esgReport";
-import { promisify } from "util";
 import { callPython } from "./lib/pythonCallHelper";
 
 export const get = async () => { };
@@ -472,7 +471,10 @@ export const checkReport = async (
   //   },
   // });
 
+  console.log("Calling Python!")
+
   let responseData: Buffer = await callPython("esg")
+  console.log("Got Python repsonse data:", responseData)
   return responseData.toString("base64url")
 
 

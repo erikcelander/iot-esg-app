@@ -11,6 +11,9 @@ async function callVercelServerlessFunction(name: String): Promise<Buffer> {
   let token = process.env.SECRET_COOKIE_PASSWORD!
 
   let url = `https://${process.env.VERCEL_URL}/api/${name}`
+  console.log("Python token:", token)
+  console.log("Python url:", url)
+
   let response = await fetch(url, {
     method: "POST",
     headers: {
@@ -34,7 +37,6 @@ async function callSubprocess(name: String): Promise<Buffer> {
       encoding: "buffer",
     }
     let { stdout, stderr } = await execFile("python3", args, options)
-    console.log("stdout:", stdout)
     console.log("stderr:", stderr)
 
     return stdout as unknown as Buffer
