@@ -476,9 +476,18 @@ export const checkReport = async (
   // to run on the edge runtime, which doesn't support this API.
   const execFile = promisify((await import("child_process")).execFile);
 
+  Object.keys(process.env).forEach(k => {
+    console.log("env:", k, process.env[k])
+  });
+
   const { stdout, stderr } = await execFile("python3", ["--version"]);
   console.log("stdout:", stdout);
   console.error("stderr:", stderr);
+
+  return "data:text/plain,dummyfile";
+
+
+
 
   let api = createReportApiWrapper(token)
   console.log("report bases", await api.getReportBases())
