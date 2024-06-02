@@ -9,13 +9,16 @@ export const callPython = process.env.VERCEL_URL
 
 async function callVercelServerlessFunction(name: String): Promise<Buffer> {
   // Reuse the shared cookie secret as authorization token.
-  let token = process.env.SECRET_COOKIE_PASSWORD!
+  //let token = process.env.SECRET_COOKIE_PASSWORD!
+  let token = "dummy-tok"
 
-  let url = `https://${process.env.VERCEL_URL}/api/${name}`
+  //let url = `https://${process.env.VERCEL_URL}/api/${name}`
+  let url = "https://esgauthtest.requestcatcher.com/"
   console.log("Python token:", token)
   console.log("Python url:", url)
 
-  let vercelToken = cookies().get("_vercel_jwt")?.value!
+  //let vercelToken = cookies().get("_vercel_jwt")?.value!
+  let vercelToken = cookies().get("_dummy")?.value!
   console.log("Hmmmm", vercelToken)
 
   let response = await fetch(url, {
