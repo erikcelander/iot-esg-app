@@ -9,9 +9,17 @@ export function PropertyOwner({ accessToken }: { accessToken: string }) {
   const [isLoading, setIsLoading] = useState(false);
   const handlereport = async () => {
     setIsLoading(true);
-    const url = await checkReport(accessToken)
-    window.location = url
+    const reportData = await checkReport(accessToken)
+    console.log("reportData:", reportData)
+    download(reportData)
     setIsLoading(false);
+  }
+
+  function download(base64Data: string) {
+    let link = document.createElement("a")
+    link.href = "data:text/plain;base64," + base64Data
+    link.download = "report.txt"
+    link.click()
   }
 
   return <div className="flex w-full h-full flex-col  justify-center items-center">

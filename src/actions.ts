@@ -491,7 +491,9 @@ export const checkReport = async (
   //   console.log("env:", k, process.env[k])
   // });
 
-  return "about:blank";
+  //let response = new Int8Array();
+  let responseData = Buffer.from("Hello from server action!", "utf-8")
+  return responseData.toString("base64url")
 
 
 
