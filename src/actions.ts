@@ -7,6 +7,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath, revalidateTag } from "next/cache";
 import createReportApiWrapper from "./lib/esgReport";
 import { callPython } from "./lib/pythonCallHelper";
+import path from "path";
+import fs from "fs/promises";
 
 export const get = async () => { };
 
@@ -462,8 +464,6 @@ export const getNodeByContext = async (
 export const checkReport = async (
   token: string,
 ) => {
-  const fs = await import("fs/promises");
-  const path = await import("path");
 
   let api = createReportApiWrapper(token)
   console.log("report bases", await api.getReportBases())
